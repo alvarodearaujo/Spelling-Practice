@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Street Spelling</title>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#f1f0ea;--panel:#ffffff;--ink:#1d2321;--muted:#5f6b66;--line:#d3d8d2;
+  --accent:#b4531a;--accent-ink:#ffffff;--ok:#1d7a4a;--bad:#b3261e;--stop:#3a4650;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#121715;--panel:#1b2220;--ink:#e9eeeb;--muted:#9aa8a2;--line:#2c3733;
+    --accent:#f0a06a;--accent-ink:#1a0e05;--ok:#4cc38a;--bad:#ff8a80;--stop:#c3ced6;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121715;--panel:#1b2220;--ink:#e9eeeb;--muted:#9aa8a2;--line:#2c3733;
+  --accent:#f0a06a;--accent-ink:#1a0e05;--ok:#4cc38a;--bad:#ff8a80;--stop:#c3ced6;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Georgia,"Times New Roman",serif;min-height:100vh;display:flex;justify-content:center}
+main{width:100%;max-width:32rem;padding:1.5rem 1.25rem 2rem;display:flex;flex-direction:column;gap:1.25rem}
+h1{font-size:1.6rem;margin:0}
+p.sub{margin:.25rem 0 0;color:var(--muted);line-height:1.5}
+.stage{background:var(--panel);border:2px solid var(--line);border-radius:1rem;padding:1.5rem 1rem;text-align:center;transition:border-color .2s}
+.stage.ok{border-color:var(--ok)}.stage.bad{border-color:var(--bad)}
+.speaker{min-height:5rem;display:flex;align-items:center;justify-content:center;font-size:1.9rem;font-weight:700;word-break:break-word}
+.speaker.ok{color:var(--ok)}.speaker.bad{color:var(--bad)}
+.speaker svg{width:4rem;height:4rem;color:var(--accent)}
+.playing svg{animation:pulse .7s ease-in-out infinite alternate}
+@keyframes pulse{to{transform:scale(1.18)}}
+@media (prefers-reduced-motion:reduce){.playing svg{animation:none}}
+.msg{min-height:1.5rem;margin:.5rem 0 0;font-weight:600;font-family:system-ui,"Segoe UI",sans-serif}
+.msg.ok{color:var(--ok)}.msg.bad{color:var(--bad)}
+.row{display:flex;gap:.6rem}
+input{flex:1;min-width:0;font:inherit;font-size:1.4rem;text-align:center;padding:.65rem;border-radius:.7rem;border:2px solid var(--line);background:var(--panel);color:var(--ink)}
+input:disabled{opacity:.5}
+button{font:inherit;font-family:system-ui,"Segoe UI",sans-serif;font-weight:700;border:0;border-radius:.7rem;padding:.75rem 1.1rem;cursor:pointer;background:var(--accent);color:var(--accent-ink)}
+button.alt{background:transparent;color:var(--ink);border:2px solid var(--line)}
+button.stop{background:var(--stop);color:var(--bg)}
+button:disabled{opacity:.45;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.controls{display:flex;gap:.6rem;flex-wrap:wrap}
+.controls button{flex:1}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;text-align:center;font-family:system-ui,"Segoe UI",sans-serif}
+.stats div{background:var(--panel);border:1px solid var(--line);border-radius:.7rem;padding:.6rem .2rem}
+.stats b{display:block;font-size:1.4rem}
+.stats span{font-size:.8rem;color:var(--muted)}
+.warn{color:var(--bad);font-size:.9rem;display:none;font-family:system-ui,sans-serif}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Street Spelling</h1>
+    <p class="sub">Listen to a street name and its spelling, letter by letter, then type it and press Enter. New names keep coming until you stop.</p>
+  </header>
+
+  <section class="stage" id="stage" aria-live="polite">
+    <div class="speaker" id="speaker"></div>
+    <p class="msg" id="msg">Press Start to begin.</p>
+  </section>
+
+  <p class="warn" id="warn">This browser has no speech synthesis, so no audio can play.</p>
+
+  <div class="row">
+    <input id="answer" autocomplete="off" autocapitalize="words" spellcheck="false" aria-label="Spell the street name you heard" placeholder="Type the street name" disabled>
+    <button id="check" disabled>Check</button>
+  </div>
+
+  <div class="controls">
+    <button id="start">Start</button>
+    <button id="replay" class="alt" disabled>Replay</button>
+    <button id="skip" class="alt" disabled>Skip</button>
+    <button id="stop" class="stop" disabled>Stop</button>
+  </div>
+
+  <div class="stats" aria-label="Score">
+    <div><b id="sCorrect">0</b><span>Correct</span></div>
+    <div><b id="sWrong">0</b><span>Wrong</span></div>
+    <div><b id="sStreak">0</b><span>Streak</span></div>
+    <div><b id="sAcc">–</b><span>Accuracy</span></div>
+  </div>
+</main>
+
+<script>
+(function(){
+  var STREETS = ["Main Street","Maple Avenue","Oak Lane","Pine Street","Cedar Drive","Elm Street","Willow Court","Chestnut Street","Sycamore Road","Magnolia Boulevard","Walnut Avenue","Hickory Lane","Juniper Way","Birchwood Drive","Cypress Circle","Dogwood Trail","Rosewood Terrace","Lakeshore Drive","Riverside Avenue","Hillcrest Road","Sunset Boulevard","Broadway","Park Place","Washington Street","Lincoln Avenue","Jefferson Road","Franklin Street","Madison Avenue","Jackson Boulevard","Pennsylvania Avenue","Massachusetts Avenue","Connecticut Avenue","Wisconsin Avenue","Mississippi Street","Tennessee Lane","Kentucky Drive","Louisiana Street","Arkansas Road","Colorado Boulevard","Michigan Avenue","Worcester Street","Gloucester Road","Leicester Square","Greenwich Street","Cambridge Court","Oxford Street","Kensington Road","Wellington Avenue","Mulberry Lane","Blueberry Hill","Strawberry Fields","Meadowbrook Drive","Brookside Court","Foxglove Lane","Heather Way","Orchard Street","Vineyard Road","Harbor View Drive","Lighthouse Lane","Seabreeze Avenue","Wildflower Trail","Thistle Street","Quarry Road","Granite Street","Marble Arch","Silverstone Drive","Goldfinch Lane","Nightingale Road","Bluebird Way","Mockingbird Lane","Pheasant Run","Cobblestone Court","Stonebridge Road","Windsor Terrace","Chancellor Way","Liberty Street","Independence Avenue","Constitution Drive","Prospect Street","Edgewater Boulevard","Fairview Avenue","Rosemary Lane","Lavender Court","Honeysuckle Drive","Primrose Path","Buttercup Lane","Cranberry Street","Raspberry Road","Peachtree Street","Applegate Drive","Beechwood Avenue","Aspen Circle","Redwood Highway","Sequoia Drive","Laurel Canyon Road","Schuylkill Avenue","Rue de la Paix"];
+  var $ = function(id){return document.getElementById(id)};
+  var stage=$("stage"), speaker=$("speaker"), msg=$("msg"), answer=$("answer");
+  var btnStart=$("start"), btnStop=$("stop"), btnReplay=$("replay"), btnCheck=$("check"), btnSkip=$("skip");
+  var state={running:false,current:null,waiting:false,correct:0,wrong:0,streak:0,timer:null,bag:[]};
+  var synth = window.speechSynthesis;
+  var ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg>';
+  speaker.innerHTML = ICON;
+
+  if(!synth){ $("warn").style.display="block"; btnStart.disabled=true; }
+
+  function norm(s){ return s.toLowerCase().replace(/\s+/g," ").trim(); }
+
+  function nextWord(){
+    if(!state.bag.length){
+      state.bag = STREETS.slice();
+      for(var i=state.bag.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=state.bag[i]; state.bag[i]=state.bag[j]; state.bag[j]=t; }
+      if(state.bag[state.bag.length-1]===state.current){ state.bag.unshift(state.bag.pop()); }
+    }
+    return state.bag.pop();
+  }
+
+  var NAMES = {A:"ay",B:"bee",C:"see",D:"dee",E:"ee",F:"eff",G:"jee",H:"aitch",I:"eye",J:"jay",K:"kay",L:"ell",M:"em",N:"en",O:"oh",P:"pee",Q:"cue",R:"are",S:"ess",T:"tee",U:"you",V:"vee",W:"double you",X:"ex",Y:"why",Z:"zee"};
+  var speakToken = 0;
+
+  function say(text, rate, token, done){
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang="en-US"; u.rate=rate;
+    var called=false;
+    function next(){ if(called) return; called=true; if(token===speakToken) done(); }
+    u.onend = next; u.onerror = next;
+    synth.speak(u);
+  }
+
+  // Says the name, then spells it letter by letter.
+  function speak(text){
+    if(!synth) return;
+    synth.cancel();
+    var token = ++speakToken;
+    var chars = text.split("");
+    speaker.classList.add("playing");
+    say(text, .8, token, function(){
+      var i = 0;
+      function step(){
+        if(token!==speakToken) return;
+        if(i>=chars.length){ speaker.classList.remove("playing"); return; }
+        var ch = chars[i++];
+        if(ch===" "){ setTimeout(step, 300); return; }
+        say(/[a-z]/i.test(ch) ? ch.toUpperCase() + "." : ch, 1.05, token, function(){ setTimeout(step, 120); });
+      }
+      setTimeout(step, 450);
+    });
+  }
+
+  function resetStage(){
+    stage.className="stage";
+    speaker.className="speaker";
+    speaker.innerHTML = ICON;
+  }
+
+  function updateStats(){
+    var total = state.correct+state.wrong;
+    $("sCorrect").textContent=state.correct;
+    $("sWrong").textContent=state.wrong;
+    $("sStreak").textContent=state.streak;
+    $("sAcc").textContent= total ? Math.round(state.correct/total*100)+"%" : "–";
+  }
+
+  function nextRound(){
+    if(!state.running) return;
+    clearTimeout(state.timer);
+    resetStage();
+    state.current = nextWord();
+    state.waiting = true;
+    msg.className="msg"; msg.textContent="Type the street name you heard.";
+    answer.value=""; answer.disabled=false;
+    btnCheck.disabled=false; btnReplay.disabled=false; btnSkip.disabled=false;
+    answer.focus();
+    speak(state.current);
+  }
+
+  function finish(ok, typed){
+    speakToken++; if(synth) synth.cancel(); state.waiting=false; answer.disabled=true;
+    btnCheck.disabled=true; btnReplay.disabled=true; btnSkip.disabled=true;
+    if(ok){ state.correct++; state.streak++; } else { state.wrong++; state.streak=0; }
+    updateStats();
+    stage.className="stage "+(ok?"ok":"bad");
+    speaker.className="speaker "+(ok?"ok":"bad");
+    speaker.textContent = state.current;
+    msg.className="msg "+(ok?"ok":"bad");
+    msg.textContent = ok ? "Correct!" : (typed ? "Not quite. You typed \""+typed+"\"." : "Skipped. Here's the spelling.");
+    state.timer = setTimeout(nextRound, ok?1200:2800);
+  }
+
+  function check(){
+    if(!state.running || !state.waiting) return;
+    var typed = answer.value.trim();
+    if(!typed){ msg.className="msg bad"; msg.textContent="Type what you heard first, or press Skip."; return; }
+    finish(norm(typed)===norm(state.current), typed);
+  }
+
+  function start(){
+    state.running=true; state.correct=state.wrong=state.streak=0; state.bag=[]; state.current=null; updateStats();
+    btnStart.disabled=true; btnStop.disabled=false;
+    nextRound();
+  }
+
+  function stop(){
+    state.running=false; state.waiting=false;
+    clearTimeout(state.timer);
+    speakToken++; if(synth) synth.cancel();
+    resetStage();
+    answer.value=""; answer.disabled=true;
+    btnCheck.disabled=true; btnReplay.disabled=true; btnSkip.disabled=true;
+    btnStart.disabled=false; btnStop.disabled=true;
+    var total=state.correct+state.wrong;
+    msg.className="msg";
+    msg.textContent = total ? "Stopped. "+state.correct+" of "+total+" correct." : "Stopped.";
+  }
+
+  btnStart.addEventListener("click", start);
+  btnStop.addEventListener("click", stop);
+  btnReplay.addEventListener("click", function(){ if(state.waiting){ speak(state.current); answer.focus(); } });
+  btnSkip.addEventListener("click", function(){ if(state.waiting) finish(false, ""); });
+  btnCheck.addEventListener("click", check);
+  answer.addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); check(); } });
+  if(synth && synth.getVoices) synth.getVoices();
+})();
+</script>
+</body>
+</html>
