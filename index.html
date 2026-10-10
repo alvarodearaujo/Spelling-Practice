@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Letter Listen</title>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#eef3f7;--panel:#ffffff;--ink:#14212b;--muted:#5b6b78;--line:#cfd9e1;
+  --accent:#1f5fbf;--accent-ink:#ffffff;--ok:#1d7a4a;--bad:#b3261e;--stop:#3a4650;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f171d;--panel:#18232b;--ink:#e8eef2;--muted:#93a4b0;--line:#2a3944;
+    --accent:#6aa5ff;--accent-ink:#08121f;--ok:#4cc38a;--bad:#ff8a80;--stop:#c3ced6;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f171d;--panel:#18232b;--ink:#e8eef2;--muted:#93a4b0;--line:#2a3944;
+  --accent:#6aa5ff;--accent-ink:#08121f;--ok:#4cc38a;--bad:#ff8a80;--stop:#c3ced6;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;min-height:100vh;display:flex;justify-content:center}
+main{width:100%;max-width:30rem;padding:1.5rem 1.25rem 2rem;display:flex;flex-direction:column;gap:1.25rem}
+h1{font-size:1.5rem;margin:0;letter-spacing:.01em}
+p.sub{margin:.25rem 0 0;color:var(--muted);line-height:1.45}
+.stage{background:var(--panel);border:2px solid var(--line);border-radius:1.25rem;padding:1.5rem 1rem;text-align:center;transition:border-color .2s}
+.stage.ok{border-color:var(--ok)}.stage.bad{border-color:var(--bad)}
+.speaker{font-size:4.5rem;line-height:1;height:5.5rem;display:flex;align-items:center;justify-content:center;font-weight:700}
+.speaker.reveal.ok{color:var(--ok)}.speaker.reveal.bad{color:var(--bad)}
+.speaker svg{width:4rem;height:4rem;color:var(--accent)}
+.playing svg{animation:pulse .7s ease-in-out infinite alternate}
+@keyframes pulse{to{transform:scale(1.18)}}
+@media (prefers-reduced-motion:reduce){.playing svg{animation:none}}
+.msg{min-height:1.5rem;margin:.5rem 0 0;font-weight:600}
+.msg.ok{color:var(--ok)}.msg.bad{color:var(--bad)}
+.row{display:flex;gap:.6rem}
+input{flex:1;min-width:0;font:inherit;font-size:1.6rem;text-align:center;text-transform:uppercase;padding:.6rem;border-radius:.8rem;border:2px solid var(--line);background:var(--panel);color:var(--ink)}
+input:disabled{opacity:.5}
+button{font:inherit;font-weight:700;border:0;border-radius:.8rem;padding:.75rem 1.1rem;cursor:pointer;background:var(--accent);color:var(--accent-ink)}
+button.alt{background:transparent;color:var(--ink);border:2px solid var(--line)}
+button.stop{background:var(--stop);color:var(--bg)}
+button:disabled{opacity:.45;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.controls{display:flex;gap:.6rem;flex-wrap:wrap}
+.controls button{flex:1}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;text-align:center}
+.stats div{background:var(--panel);border:1px solid var(--line);border-radius:.8rem;padding:.6rem .2rem}
+.stats b{display:block;font-size:1.4rem}
+.stats span{font-size:.8rem;color:var(--muted)}
+.warn{color:var(--bad);font-size:.9rem;display:none}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Letter Listen</h1>
+    <p class="sub">Listen to the letter, type it, press Enter. A new letter plays until you stop.</p>
+  </header>
+
+  <section class="stage" id="stage" aria-live="polite">
+    <div class="speaker" id="speaker">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg>
+    </div>
+    <p class="msg" id="msg">Press Start to begin.</p>
+  </section>
+
+  <p class="warn" id="warn">This browser has no speech synthesis, so no audio can play.</p>
+
+  <div class="row">
+    <input id="answer" maxlength="1" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Letter you heard" disabled>
+    <button id="check" disabled>Check</button>
+  </div>
+
+  <div class="controls">
+    <button id="start">Start</button>
+    <button id="replay" class="alt" disabled>Replay</button>
+    <button id="stop" class="stop" disabled>Stop</button>
+  </div>
+
+  <div class="stats" aria-label="Score">
+    <div><b id="sCorrect">0</b><span>Correct</span></div>
+    <div><b id="sWrong">0</b><span>Wrong</span></div>
+    <div><b id="sStreak">0</b><span>Streak</span></div>
+    <div><b id="sAcc">–</b><span>Accuracy</span></div>
+  </div>
+</main>
+
+<script>
+(function(){
+  var NAMES = {A:"ay",B:"bee",C:"see",D:"dee",E:"ee",F:"eff",G:"jee",H:"aitch",I:"eye",J:"jay",K:"kay",L:"ell",M:"em",N:"en",O:"oh",P:"pee",Q:"cue",R:"are",S:"ess",T:"tee",U:"you",V:"vee",W:"double you",X:"ex",Y:"why",Z:"zee"};
+  var LETTERS = Object.keys(NAMES);
+  var $ = function(id){return document.getElementById(id)};
+  var stage=$("stage"), speaker=$("speaker"), msg=$("msg"), answer=$("answer");
+  var btnStart=$("start"), btnStop=$("stop"), btnReplay=$("replay"), btnCheck=$("check");
+  var state={running:false,current:null,waiting:false,correct:0,wrong:0,streak:0,timer:null};
+  var synth = window.speechSynthesis;
+  var ICON = speaker.innerHTML;
+
+  if(!synth){ $("warn").style.display="block"; btnStart.disabled=true; }
+
+  function randomLetter(){
+    var l;
+    do { l = LETTERS[Math.floor(Math.random()*LETTERS.length)]; } while(l===state.current && LETTERS.length>1);
+    return l;
+  }
+
+  function speak(letter){
+    if(!synth) return;
+    synth.cancel();
+    var u = new SpeechSynthesisUtterance(NAMES[letter]);
+    u.lang = "en-US"; u.rate = .8;
+    speaker.classList.add("playing");
+    u.onend = u.onerror = function(){ speaker.classList.remove("playing"); };
+    synth.speak(u);
+  }
+
+  function resetStage(){
+    stage.className="stage";
+    speaker.className="speaker";
+    speaker.innerHTML = ICON;
+  }
+
+  function nextRound(){
+    if(!state.running) return;
+    clearTimeout(state.timer);
+    resetStage();
+    state.current = randomLetter();
+    state.waiting = true;
+    msg.className="msg"; msg.textContent="Which letter did you hear?";
+    answer.value=""; answer.disabled=false; btnCheck.disabled=false; btnReplay.disabled=false;
+    answer.focus();
+    speak(state.current);
+  }
+
+  function updateStats(){
+    var total = state.correct+state.wrong;
+    $("sCorrect").textContent=state.correct;
+    $("sWrong").textContent=state.wrong;
+    $("sStreak").textContent=state.streak;
+    $("sAcc").textContent= total ? Math.round(state.correct/total*100)+"%" : "–";
+  }
+
+  function check(){
+    if(!state.running || !state.waiting) return;
+    var v = answer.value.trim().toUpperCase();
+    if(!/^[A-Z]$/.test(v)){ msg.className="msg bad"; msg.textContent="Type a single letter from A to Z."; return; }
+    state.waiting=false; answer.disabled=true; btnCheck.disabled=true; btnReplay.disabled=true;
+    var ok = v===state.current;
+    if(ok){ state.correct++; state.streak++; } else { state.wrong++; state.streak=0; }
+    updateStats();
+    stage.className="stage "+(ok?"ok":"bad");
+    speaker.className="speaker reveal "+(ok?"ok":"bad");
+    speaker.textContent = state.current;
+    msg.className="msg "+(ok?"ok":"bad");
+    msg.textContent = ok ? "Correct!" : "Not quite. It was "+state.current+", you typed "+v+".";
+    state.timer = setTimeout(nextRound, ok?1100:2000);
+  }
+
+  function start(){
+    state.running=true; state.correct=state.wrong=state.streak=0; updateStats();
+    btnStart.disabled=true; btnStop.disabled=false;
+    nextRound();
+  }
+
+  function stop(){
+    state.running=false; state.waiting=false;
+    clearTimeout(state.timer);
+    if(synth) synth.cancel();
+    resetStage();
+    answer.value=""; answer.disabled=true; btnCheck.disabled=true; btnReplay.disabled=true;
+    btnStart.disabled=false; btnStop.disabled=true;
+    var total=state.correct+state.wrong;
+    msg.className="msg";
+    msg.textContent = total ? "Stopped. "+state.correct+" of "+total+" correct." : "Stopped.";
+  }
+
+  btnStart.addEventListener("click", start);
+  btnStop.addEventListener("click", stop);
+  btnReplay.addEventListener("click", function(){ if(state.waiting){ speak(state.current); answer.focus(); } });
+  btnCheck.addEventListener("click", check);
+  answer.addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); check(); } });
+  answer.addEventListener("input", function(){ answer.value = answer.value.replace(/[^a-zA-Z]/g,"").slice(0,1); });
+  if(synth && synth.getVoices) synth.getVoices();
+})();
+</script>
+</body>
+</html>
