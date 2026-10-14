@@ -115,10 +115,44 @@ body {
   color: var(--accent);
 }
 
+.masthead-right {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+}
+
 .masthead nav {
   display: flex;
   gap: 1.1rem;
   font-size: var(--step--1);
+}
+
+.lang-picker {
+  display: flex;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.lang-picker button {
+  border: 0;
+  border-radius: 0;
+  padding: 0.3rem 0.45rem;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.62rem;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  background: transparent;
+}
+
+.lang-picker button:hover:not([aria-pressed="true"]) {
+  color: var(--ink);
+}
+
+.lang-picker button[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--paper);
 }
 
 .masthead nav a {
@@ -560,6 +594,21 @@ select:disabled {
   margin: 0;
   font-size: var(--step--1);
   color: var(--muted);
+}
+
+.voice-note.tested {
+  margin-top: 0.5rem;
+  font-size: 0.72rem;
+}
+
+.credit {
+  margin: 1.5rem 0 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.credit a {
+  color: inherit;
 }
 
 /* Entrance ---------------------------------------------------------------- */

@@ -12,6 +12,8 @@
     Speech.prime()                -> warms up the engine after a user gesture
     Speech.speak(text, opts)      -> Promise<boolean>, false when cancelled
                                      opts: {rate, asCharacters}
+    Speech.speakSequence(parts)   -> one request for many parts; each part is
+                                     {text, rate, asCharacters} or {pause: ms}
     Speech.cancel()               -> stops playback and settles pending speak()
     Speech.listVoices()           -> Promise<[{id, name, locale, gender}]>
     Speech.getRate() / setRate(n) -> global speed multiplier, 0.5-1.5
@@ -40,6 +42,7 @@
   var token = 0;          // bumped by cancel() so stale callbacks resolve false
   var player = null;      // active Azure speaker output
   var synthesizer = null;
+  var activeFinish = null; // settles the in-flight Azure playback promise
   var prefs = loadPrefs();
 
   function config() { return global.SPEECH_CONFIG || {}; }
@@ -158,17 +161,22 @@
 
   var XML_ESCAPES = { "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;" };
 
-  function buildSsml(text, opts) {
-    var percent = Math.round(((opts.rate || 1) - 1) * 100);
-    var body = String(text).replace(/[<>&'"]/g, function (ch) { return XML_ESCAPES[ch]; });
-    if (opts.asCharacters) body = '<say-as interpret-as="characters">' + body + "</say-as>";
+  function partToSsml(part) {
+    if (part.pause) return '<break time="' + Math.round(part.pause) + 'ms"/>';
+    var percent = Math.round((clampRate((part.rate || 1) * currentRate()) - 1) * 100);
+    var body = String(part.text).replace(/[<>&'"]/g, function (ch) { return XML_ESCAPES[ch]; });
+    if (part.asCharacters) body = '<say-as interpret-as="characters">' + body + "</say-as>";
+    return '<prosody rate="' + (percent >= 0 ? "+" : "") + percent + '%">' + body + "</prosody>";
+  }
+
+  function buildSsml(parts) {
     return '<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="' + currentLang() + '">' +
       '<voice name="' + currentVoice() + '">' +
-      '<prosody rate="' + (percent >= 0 ? "+" : "") + percent + '%">' + body + "</prosody>" +
+      parts.map(partToSsml).join("") +
       "</voice></speak>";
   }
 
-  function speakAzure(text, opts, myToken) {
+  function speakAzure(parts, myToken) {
     return loadSdk()
       .then(buildSpeechConfig)
       .then(function (speechConfig) {
@@ -186,14 +194,16 @@
           function cleanup() {
             if (player === dest) player = null;
             if (synthesizer === active) synthesizer = null;
+            if (activeFinish === finish) activeFinish = null;
             try { active.close(); } catch (e) { /* already closed */ }
           }
           function finish() { if (!settled) { settled = true; cleanup(); resolve(myToken === token); } }
           function fail(err) { if (!settled) { settled = true; cleanup(); reject(err); } }
 
+          activeFinish = finish;
           dest.onAudioEnd = finish;
 
-          active.speakSsmlAsync(buildSsml(text, opts), function (result) {
+          active.speakSsmlAsync(buildSsml(parts), function (result) {
             if (result.reason === SpeechSDK.ResultReason.Canceled) {
               var details = SpeechSDK.CancellationDetails.fromResult(result);
               fail(new Error(details.errorDetails || "Azure cancelled the synthesis request."));
@@ -219,15 +229,14 @@
     return synth && synth.getVoices ? synth.getVoices() : [];
   }
 
-  function speakBrowser(text, opts, myToken) {
-    if (!synth) return Promise.resolve(false);
+  function speakUtterance(part, myToken) {
     return new Promise(function (resolve) {
-      var utterance = new SpeechSynthesisUtterance(opts.asCharacters ? spellOut(text) : text);
+      var utterance = new SpeechSynthesisUtterance(part.asCharacters ? spellOut(part.text) : part.text);
       var settled = false;
       var chosen = browserVoices().filter(function (v) { return v.name === currentVoice(); })[0];
       utterance.lang = currentLang();
       if (chosen) utterance.voice = chosen;
-      utterance.rate = opts.rate || 1;
+      utterance.rate = clampRate((part.rate || 1) * currentRate());
       utterance.onend = utterance.onerror = function () {
         if (!settled) { settled = true; resolve(myToken === token); }
       };
@@ -235,20 +244,43 @@
     });
   }
 
-  function speak(text, options) {
-    var opts = {
-      rate: clampRate((options && typeof options.rate === "number" ? options.rate : 1) * currentRate()),
-      asCharacters: !!(options && options.asCharacters)
-    };
-    var myToken = token;
+  // No SSML here, so the sequence is replayed one utterance at a time.
+  function speakBrowser(parts, myToken) {
+    if (!synth) return Promise.resolve(false);
+    var index = 0;
+    function next() {
+      if (myToken !== token) return Promise.resolve(false);
+      if (index >= parts.length) return Promise.resolve(true);
+      var part = parts[index++];
+      if (part.pause) {
+        return new Promise(function (resolve) { setTimeout(resolve, part.pause); }).then(next);
+      }
+      return speakUtterance(part, myToken).then(function (finished) {
+        return finished ? next() : false;
+      });
+    }
+    return next();
+  }
 
+  /* One Azure request for the whole sequence; parts are {text, rate,
+     asCharacters} or {pause: milliseconds}. */
+  function speakSequence(parts) {
+    var myToken = token;
     if (azureConfigured()) {
-      return speakAzure(text, opts, myToken).catch(function (err) {
+      return speakAzure(parts, myToken).catch(function (err) {
         report(err);
         return false;
       });
     }
-    return speakBrowser(text, opts, myToken);
+    return speakBrowser(parts, myToken);
+  }
+
+  function speak(text, options) {
+    return speakSequence([{
+      text: text,
+      rate: options && typeof options.rate === "number" ? options.rate : 1,
+      asCharacters: !!(options && options.asCharacters)
+    }]);
   }
 
   function cancel() {
@@ -261,6 +293,12 @@
     if (synthesizer) {
       try { synthesizer.close(); } catch (e) { /* already closed */ }
       synthesizer = null;
+    }
+    // Without this the promise would wait for the whole clip's safety timer.
+    if (activeFinish) {
+      var settle = activeFinish;
+      activeFinish = null;
+      settle();
     }
     if (synth) synth.cancel();
   }
@@ -325,6 +363,7 @@
 
   global.Speech = {
     speak: speak,
+    speakSequence: speakSequence,
     cancel: cancel,
     prime: prime,
     listVoices: listVoices,

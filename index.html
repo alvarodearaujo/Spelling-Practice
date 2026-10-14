@@ -3,12 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Letters — Spelling Practice</title>
+<title data-i18n="letters.title">Letters — Spelling Practice</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,600&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="app.css">
+<script src="i18n.js"></script>
 </head>
 <body data-page="letters">
 <div class="grain" aria-hidden="true"></div>
@@ -16,17 +17,20 @@
 <div class="shell">
   <header class="masthead">
     <a class="wordmark" href="index.html">Spelling <em>Practice</em></a>
-    <nav>
-      <a href="index.html" aria-current="page">Letters</a>
-      <a href="street.html">Streets</a>
-    </nav>
+    <div class="masthead-right">
+      <nav>
+        <a href="index.html" aria-current="page" data-i18n="nav.letters">Letters</a>
+        <a href="street.html" data-i18n="nav.streets">Streets</a>
+      </nav>
+      <div data-lang-picker></div>
+    </div>
   </header>
 
   <main>
     <section class="intro rise">
-      <p class="eyebrow">Drill 01 — Alphabet</p>
-      <h1>One letter at a time, until it <em>sticks</em>.</h1>
-      <p>A letter is read aloud. Type what you hear and press Enter — the next one follows on its own.</p>
+      <p class="eyebrow" data-i18n="letters.eyebrow">Drill 01 — Alphabet</p>
+      <h1 data-i18n="letters.h1">One letter at a time, until it <em>sticks</em>.</h1>
+      <p data-i18n="letters.lead">A letter is read aloud. Type what you hear and press Enter — the next one follows on its own.</p>
     </section>
 
     <section class="stage rise" id="stage" data-state="idle" aria-live="polite">
@@ -34,30 +38,30 @@
         <div class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
         <span class="answer-reveal letter" id="reveal"></span>
       </div>
-      <p class="prompt" id="msg">Press Start to begin.</p>
+      <p class="prompt" id="msg" data-i18n="common.pressStart">Press Start to begin.</p>
     </section>
 
-    <p class="warn" id="warn">No speech engine is available, so no audio can play.</p>
+    <p class="warn" id="warn" data-i18n="common.warnNoEngine">No speech engine is available, so no audio can play.</p>
 
     <div class="answer rise">
       <label for="answer-letter">
-        <span class="eyebrow">Letter you heard</span>
-        <input type="text" id="answer-letter" maxlength="1" autocomplete="off" autocapitalize="characters" spellcheck="false" disabled>
+        <span class="eyebrow" data-i18n="letters.inputLabel">Letter you heard</span>
+        <input type="text" id="answer-letter" maxlength="1" autocomplete="off" autocapitalize="characters" spellcheck="false" data-i18n-label="letters.inputLabel" disabled>
       </label>
-      <button id="check" disabled>Check</button>
+      <button id="check" data-i18n="btn.check" disabled>Check</button>
     </div>
 
     <div class="controls">
-      <button id="start" class="primary">Start</button>
-      <button id="replay" disabled>Replay</button>
-      <button id="stop" disabled>Stop</button>
+      <button id="start" class="primary" data-i18n="btn.start">Start</button>
+      <button id="replay" data-i18n="btn.replay" disabled>Replay</button>
+      <button id="stop" data-i18n="btn.stop" disabled>Stop</button>
     </div>
 
     <dl class="scoreboard">
-      <div><dt>Correct</dt><dd id="sCorrect">0</dd></div>
-      <div><dt>Missed</dt><dd id="sWrong">0</dd></div>
-      <div><dt>Streak</dt><dd id="sStreak">0</dd></div>
-      <div><dt>Accuracy</dt><dd id="sAcc">—</dd></div>
+      <div><dt data-i18n="stats.correct">Correct</dt><dd id="sCorrect">0</dd></div>
+      <div><dt data-i18n="stats.missed">Missed</dt><dd id="sWrong">0</dd></div>
+      <div><dt data-i18n="stats.streak">Streak</dt><dd id="sStreak">0</dd></div>
+      <div><dt data-i18n="stats.accuracy">Accuracy</dt><dd id="sAcc">—</dd></div>
     </dl>
 
     <div id="voice-settings"></div>
@@ -75,12 +79,13 @@
   var btnStart=$("start"), btnStop=$("stop"), btnReplay=$("replay"), btnCheck=$("check");
   var state={running:false,current:null,waiting:false,correct:0,wrong:0,streak:0,timer:null};
   var speech = window.Speech;
+  var say = function(key, vars){ I18n.setText(msg, key, vars); };
 
   if(!speech || !speech.isSupported()){ $("warn").style.display="block"; btnStart.disabled=true; }
 
   window.SPEECH_CONFIG.onError = function(err){
     var warn = $("warn");
-    warn.textContent = "Speech service: " + (err && err.message ? err.message : err);
+    I18n.setText(warn, "common.speechError", {message: (err && err.message ? err.message : String(err))});
     warn.style.display = "block";
   };
 
@@ -105,7 +110,7 @@
     reveal.textContent = "";
     state.current = randomLetter();
     state.waiting = true;
-    msg.textContent = "Which letter did you hear?";
+    say("letters.prompt");
     answer.value=""; answer.disabled=false; btnCheck.disabled=false; btnReplay.disabled=false;
     answer.focus();
     speak(state.current);
@@ -122,7 +127,7 @@
   function check(){
     if(!state.running || !state.waiting) return;
     var v = answer.value.trim().toUpperCase();
-    if(!/^[A-Z]$/.test(v)){ msg.textContent="Type a single letter from A to Z."; return; }
+    if(!/^[A-Z]$/.test(v)){ say("letters.invalid"); return; }
     state.waiting=false; answer.disabled=true; btnCheck.disabled=true; btnReplay.disabled=true;
     speech.cancel();
     var ok = v===state.current;
@@ -130,7 +135,7 @@
     updateStats();
     stage.dataset.state = ok ? "ok" : "bad";
     reveal.textContent = state.current;
-    msg.textContent = ok ? "Correct." : "It was " + state.current + " — you typed " + v + ".";
+    if(ok) say("common.correct"); else say("letters.wrong", {answer: state.current, typed: v});
     state.timer = setTimeout(nextRound, ok?1100:2000);
   }
 
@@ -149,7 +154,7 @@
     answer.value=""; answer.disabled=true; btnCheck.disabled=true; btnReplay.disabled=true;
     btnStart.disabled=false; btnStop.disabled=true;
     var total=state.correct+state.wrong;
-    msg.textContent = total ? "Stopped — " + state.correct + " of " + total + " correct." : "Stopped.";
+    if(total) say("common.stoppedScore", {correct: state.correct, total: total}); else say("common.stopped");
   }
 
   btnStart.addEventListener("click", start);

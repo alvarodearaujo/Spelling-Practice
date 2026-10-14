@@ -3,12 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Streets — Spelling Practice</title>
+<title data-i18n="streets.title">Streets — Spelling Practice</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,600&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="app.css">
+<script src="i18n.js"></script>
 </head>
 <body data-page="street">
 <div class="grain" aria-hidden="true"></div>
@@ -16,17 +17,20 @@
 <div class="shell">
   <header class="masthead">
     <a class="wordmark" href="index.html">Spelling <em>Practice</em></a>
-    <nav>
-      <a href="index.html">Letters</a>
-      <a href="street.html" aria-current="page">Streets</a>
-    </nav>
+    <div class="masthead-right">
+      <nav>
+        <a href="index.html" data-i18n="nav.letters">Letters</a>
+        <a href="street.html" aria-current="page" data-i18n="nav.streets">Streets</a>
+      </nav>
+      <div data-lang-picker></div>
+    </div>
   </header>
 
   <main>
     <section class="intro rise">
-      <p class="eyebrow">Drill 02 — Street names</p>
-      <h1>Heard once, then spelled <em>out loud</em>.</h1>
-      <p>Each name is read, then spelled letter by letter. Write it down and press Enter — or skip to see the answer.</p>
+      <p class="eyebrow" data-i18n="streets.eyebrow">Drill 02 — Street names</p>
+      <h1 data-i18n="streets.h1">Heard once, then spelled <em>out loud</em>.</h1>
+      <p data-i18n="streets.lead">Each name is read, then spelled letter by letter. Write it down and press Enter — or skip to see the answer.</p>
     </section>
 
     <section class="stage rise" id="stage" data-state="idle" aria-live="polite">
@@ -34,58 +38,82 @@
         <div class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
         <span class="answer-reveal word" id="reveal"></span>
       </div>
-      <p class="prompt" id="msg">Press Start to begin.</p>
+      <p class="prompt" id="msg" data-i18n="common.pressStart">Press Start to begin.</p>
     </section>
 
-    <p class="warn" id="warn">No speech engine is available, so no audio can play.</p>
+    <p class="warn" id="warn" data-i18n="common.warnNoEngine">No speech engine is available, so no audio can play.</p>
 
     <div class="answer rise">
       <label for="answer-street">
-        <span class="eyebrow">Street name</span>
-        <input type="text" id="answer-street" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Type what you heard" disabled>
+        <span class="eyebrow" data-i18n="streets.inputLabel">Street name</span>
+        <input type="text" id="answer-street" autocomplete="off" autocapitalize="words" spellcheck="false" data-i18n-placeholder="streets.placeholder" data-i18n-label="streets.inputLabel" placeholder="Type what you heard" disabled>
       </label>
-      <button id="check" disabled>Check</button>
+      <button id="check" data-i18n="btn.check" disabled>Check</button>
     </div>
 
     <div class="controls">
-      <button id="start" class="primary">Start</button>
-      <button id="replay" disabled>Replay</button>
-      <button id="skip" disabled>Skip</button>
-      <button id="stop" disabled>Stop</button>
+      <button id="start" class="primary" data-i18n="btn.start">Start</button>
+      <button id="replay" data-i18n="btn.replay" disabled>Replay</button>
+      <button id="skip" data-i18n="btn.skip" disabled>Skip</button>
+      <button id="stop" data-i18n="btn.stop" disabled>Stop</button>
     </div>
 
     <dl class="scoreboard">
-      <div><dt>Correct</dt><dd id="sCorrect">0</dd></div>
-      <div><dt>Missed</dt><dd id="sWrong">0</dd></div>
-      <div><dt>Streak</dt><dd id="sStreak">0</dd></div>
-      <div><dt>Accuracy</dt><dd id="sAcc">—</dd></div>
+      <div><dt data-i18n="stats.correct">Correct</dt><dd id="sCorrect">0</dd></div>
+      <div><dt data-i18n="stats.missed">Missed</dt><dd id="sWrong">0</dd></div>
+      <div><dt data-i18n="stats.streak">Streak</dt><dd id="sStreak">0</dd></div>
+      <div><dt data-i18n="stats.accuracy">Accuracy</dt><dd id="sAcc">—</dd></div>
     </dl>
 
     <div id="voice-settings"></div>
+
+    <p class="credit">
+      <span data-i18n="streets.credit">Street names from</span>
+      <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a>
+    </p>
   </main>
 </div>
 
 <script src="speech-config.js"></script>
 <script src="speech.js"></script>
 <script src="settings.js"></script>
+<script src="streets.js"></script>
 <script>
 (function(){
-  var STREETS = ["Main Street","Maple Avenue","Oak Lane","Pine Street","Cedar Drive","Elm Street","Willow Court","Chestnut Street","Sycamore Road","Magnolia Boulevard","Walnut Avenue","Hickory Lane","Juniper Way","Birchwood Drive","Cypress Circle","Dogwood Trail","Rosewood Terrace","Lakeshore Drive","Riverside Avenue","Hillcrest Road","Sunset Boulevard","Broadway","Park Place","Washington Street","Lincoln Avenue","Jefferson Road","Franklin Street","Madison Avenue","Jackson Boulevard","Pennsylvania Avenue","Massachusetts Avenue","Connecticut Avenue","Wisconsin Avenue","Mississippi Street","Tennessee Lane","Kentucky Drive","Louisiana Street","Arkansas Road","Colorado Boulevard","Michigan Avenue","Worcester Street","Gloucester Road","Leicester Square","Greenwich Street","Cambridge Court","Oxford Street","Kensington Road","Wellington Avenue","Mulberry Lane","Blueberry Hill","Strawberry Fields","Meadowbrook Drive","Brookside Court","Foxglove Lane","Heather Way","Orchard Street","Vineyard Road","Harbor View Drive","Lighthouse Lane","Seabreeze Avenue","Wildflower Trail","Thistle Street","Quarry Road","Granite Street","Marble Arch","Silverstone Drive","Goldfinch Lane","Nightingale Road","Bluebird Way","Mockingbird Lane","Pheasant Run","Cobblestone Court","Stonebridge Road","Windsor Terrace","Chancellor Way","Liberty Street","Independence Avenue","Constitution Drive","Prospect Street","Edgewater Boulevard","Fairview Avenue","Rosemary Lane","Lavender Court","Honeysuckle Drive","Primrose Path","Buttercup Lane","Cranberry Street","Raspberry Road","Peachtree Street","Applegate Drive","Beechwood Avenue","Aspen Circle","Redwood Highway","Sequoia Drive","Laurel Canyon Road","Schuylkill Avenue","Rue de la Paix"];
+  // Voices measured to render isolated letters clearly; fr-FR-Alain barely does.
+  var VOICE_FOR = {
+    pt: {locale:"pt-PT", voice:"pt-PT-FernandaNeural"},
+    en: {locale:"en-GB", voice:"en-GB-SoniaNeural"},
+    fr: {locale:"fr-FR", voice:"fr-FR-VivienneMultilingualNeural"}
+  };
   var $ = function(id){return document.getElementById(id)};
   var stage=$("stage"), reveal=$("reveal"), msg=$("msg"), answer=$("answer-street");
   var btnStart=$("start"), btnStop=$("stop"), btnReplay=$("replay"), btnCheck=$("check"), btnSkip=$("skip");
   var state={running:false,current:null,waiting:false,correct:0,wrong:0,streak:0,timer:null,bag:[]};
   var speech = window.Speech;
+  var say = function(key, vars){ I18n.setText(msg, key, vars); };
 
   if(!speech || !speech.isSupported()){ $("warn").style.display="block"; btnStart.disabled=true; }
 
   window.SPEECH_CONFIG.onError = function(err){
     var warn = $("warn");
-    warn.textContent = "Speech service: " + (err && err.message ? err.message : err);
+    I18n.setText(warn, "common.speechError", {message: (err && err.message ? err.message : String(err))});
     warn.style.display = "block";
   };
 
   function norm(s){ return s.toLowerCase().replace(/\s+/g," ").trim(); }
+
+  var STREETS = [];
+
+  function loadStreets(){
+    STREETS = Streets.load(I18n.get(), function(fresh){
+      if(I18n.get() === lastLang){ STREETS = fresh; state.bag = []; }
+    });
+    state.bag = [];
+  }
+
+  var lastLang = I18n.get();
+  loadStreets();
 
   function nextWord(){
     if(!state.bag.length){
@@ -98,29 +126,20 @@
 
   var speakToken = 0;
 
-  function delay(ms){ return new Promise(function(resolve){ setTimeout(resolve, ms); }); }
-
-  // Says the name, then spells it letter by letter.
+  // Name, then the spelling, in a single request to keep the pauses tight.
   function speak(text){
     if(!speech || !speech.isSupported()) return;
     speech.cancel();
     var token = ++speakToken;
-    var chars = text.split("");
-    var i = 0;
     stage.dataset.state = "playing";
 
-    function step(){
-      if(token!==speakToken || i>=chars.length) return Promise.resolve();
-      var ch = chars[i++];
-      if(ch===" ") return delay(300).then(step);
-      return speech.speak(ch, {rate:1.05, asCharacters:true}).then(function(finished){
-        if(finished) return delay(120).then(step);
-      });
-    }
+    var parts = [{text: text, rate: .9}, {pause: 500}];
+    text.split("").forEach(function(ch){
+      if(ch === " "){ parts.push({pause: 350}); return; }
+      parts.push({text: ch, rate: 1.05, asCharacters: true}, {pause: 150});
+    });
 
-    speech.speak(text, {rate:.9}).then(function(finished){
-      if(finished) return delay(450).then(step);
-    }).then(function(){
+    speech.speakSequence(parts).then(function(){
       if(token===speakToken && stage.dataset.state==="playing") stage.dataset.state = "listening";
     });
   }
@@ -139,7 +158,7 @@
     reveal.textContent = "";
     state.current = nextWord();
     state.waiting = true;
-    msg.textContent = "Type the street name you heard.";
+    say("streets.prompt");
     answer.value=""; answer.disabled=false;
     btnCheck.disabled=false; btnReplay.disabled=false; btnSkip.disabled=false;
     answer.focus();
@@ -153,14 +172,16 @@
     updateStats();
     stage.dataset.state = ok ? "ok" : "bad";
     reveal.textContent = state.current;
-    msg.textContent = ok ? "Correct." : (typed ? "You typed “" + typed + "”." : "Skipped.");
+    if(ok) say("common.correct");
+    else if(typed) say("streets.typed", {typed: typed});
+    else say("streets.skipped");
     state.timer = setTimeout(nextRound, ok?1200:2800);
   }
 
   function check(){
     if(!state.running || !state.waiting) return;
     var typed = answer.value.trim();
-    if(!typed){ msg.textContent="Type what you heard first, or press Skip."; return; }
+    if(!typed){ say("streets.empty"); return; }
     finish(norm(typed)===norm(state.current), typed);
   }
 
@@ -180,7 +201,7 @@
     btnCheck.disabled=true; btnReplay.disabled=true; btnSkip.disabled=true;
     btnStart.disabled=false; btnStop.disabled=true;
     var total=state.correct+state.wrong;
-    msg.textContent = total ? "Stopped — " + state.correct + " of " + total + " correct." : "Stopped.";
+    if(total) say("common.stoppedScore", {correct: state.correct, total: total}); else say("common.stopped");
   }
 
   btnStart.addEventListener("click", start);
@@ -190,8 +211,18 @@
   btnCheck.addEventListener("click", check);
   answer.addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); check(); } });
 
-  window.SpeechSettings.mount($("voice-settings"), {
-    onChange: function(){ if(state.waiting) speak(state.current); else speech.speak("Oxford Street", {rate:.9}); }
+  var panel = window.SpeechSettings.mount($("voice-settings"), {
+    onChange: function(){ if(state.waiting) speak(state.current); else if(STREETS.length) speech.speak(STREETS[0], {rate:.9}); }
+  });
+
+  panel.selectLocale(VOICE_FOR[I18n.get()].locale, VOICE_FOR[I18n.get()].voice);
+
+  // The names are local to the site language, so the voice has to follow.
+  I18n.onChange(function(lang){
+    lastLang = lang;
+    stop();
+    loadStreets();
+    panel.selectLocale(VOICE_FOR[lang].locale, VOICE_FOR[lang].voice);
   });
 
   if(speech) speech.prime();
