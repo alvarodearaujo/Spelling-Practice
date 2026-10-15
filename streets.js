@@ -1,10 +1,11 @@
 /*
   Street names per site language.
 
-  Real names come from OpenStreetMap through the Overpass API, one bounding box
-  per language. That service is volunteer-run, slow (~5s) and rate limited, so:
-  the bundled list answers immediately, the network result is cached for 30 days
-  and swapped in through the onUpdate callback when it lands.
+  The baseline ships in streets-data.js: real names harvested once from
+  OpenStreetMap, so a drill never falls back to invented streets. The Overpass
+  API then refreshes them in the background for variety, but it is volunteer
+  run, slow (~5-40s) and often rate limited, so nothing waits on it. A result
+  that does land is cached for 30 days and swapped in through onUpdate.
 
   Data: © OpenStreetMap contributors, ODbL.
 */
@@ -27,11 +28,7 @@
     fr: { bbox: "48.85,2.32,48.87,2.36", city: "Paris" }
   };
 
-  var FALLBACK = {
-    pt: ["Rua Augusta","Rua da Prata","Rua do Ouro","Avenida da Liberdade","Rua Garrett","Rua do Carmo","Praça do Comércio","Rua da Conceição","Rua dos Fanqueiros","Travessa do Carmo","Rua de São Bento","Avenida Almirante Reis","Rua Castilho","Rua Braamcamp","Avenida da República","Rua Alexandre Herculano","Largo do Rato","Rua das Janelas Verdes","Rua da Boavista","Rua do Alecrim","Rua de Santa Catarina","Avenida de Roma","Rua Marquês de Fronteira","Rua Luís de Camões","Travessa da Glória","Calçada do Combro","Rua Nova do Almada","Rua do Salitre","Avenida Infante Santo","Rua Barata Salgueiro","Rua Rodrigo da Fonseca","Rua Dom Pedro V","Rua da Misericórdia","Largo de Camões","Rua Ivens","Rua Serpa Pinto","Avenida Duque de Loulé","Rua Viriato","Rua Tomás Ribeiro","Rua do Século"],
-    en: ["Main Street","Maple Avenue","Oak Lane","Pine Street","Cedar Drive","Elm Street","Willow Court","Chestnut Street","Sycamore Road","Magnolia Boulevard","Walnut Avenue","Hickory Lane","Juniper Way","Birchwood Drive","Cypress Circle","Dogwood Trail","Rosewood Terrace","Lakeshore Drive","Riverside Avenue","Hillcrest Road","Sunset Boulevard","Park Place","Washington Street","Lincoln Avenue","Franklin Street","Madison Avenue","Oxford Street","Kensington Road","Wellington Avenue","Mulberry Lane","Orchard Street","Vineyard Road","Lighthouse Lane","Thistle Street","Granite Street","Goldfinch Lane","Nightingale Road","Mockingbird Lane","Windsor Terrace","Liberty Street"],
-    fr: ["Rue de Rivoli","Boulevard Saint-Germain","Avenue des Champs-Élysées","Rue Saint-Honoré","Rue de la Paix","Boulevard Haussmann","Rue Mouffetard","Quai de Bourbon","Rue Oberkampf","Avenue Montaigne","Rue Lepic","Boulevard de Magenta","Rue du Bac","Rue de Vaugirard","Avenue de l'Opéra","Rue Montorgueil","Boulevard Voltaire","Rue des Rosiers","Place de la Concorde","Rue Cler","Rue de Belleville","Avenue Foch","Rue Daguerre","Boulevard Raspail","Rue de Charonne","Quai Voltaire","Rue Saint-Antoine","Avenue Victor Hugo","Rue Jacob","Rue de Seine","Boulevard Beaumarchais","Rue Caulaincourt","Avenue Rapp","Rue Saint-Dominique","Rue du Temple","Place des Vosges","Rue Monge","Avenue Kléber","Rue Lafayette","Rue de Turenne"]
-  };
+  var FALLBACK = global.STREET_DATA || {};
 
   var inFlight = {};
 
